@@ -143,22 +143,21 @@ def process_exists(processes : list):
 
 def main_loop(high_performance_process):
     power = powersetting()
-    is_high_performance = power.get_active_power_plan() == powersetting.high_performance
+    is_high_performance = lambda : power.get_active_power_plan() == powersetting.high_performance
     while True:
         if process_exists(high_performance_process):
-            if not is_high_performance:
+            if not is_high_performance():
                 power.set_power_plan(powersetting.high_performance)
-                is_high_performance = True
         else:
-            if is_high_performance:
+            if is_high_performance():
                 power.set_power_plan(powersetting.power_save)
-                is_high_performance = False
         time.sleep(5)
 
 def main():
     # 高パフォーマンスで実行したいプロセス名を入れる
     high_performance_process : list = ["r5apex.exe"]
     main_loop(high_performance_process)
+
 
 
 main()
