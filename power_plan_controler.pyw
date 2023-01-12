@@ -8,27 +8,14 @@ class GUID(ctypes.Structure):
                 ("Data2", ctypes.c_ushort),
                 ("Data3", ctypes.c_ushort),
                 ("Data4", ctypes.c_ubyte * 8)]
-    
-    def string(self) -> str:
+
+    def __str__(self) -> str:
         return '{:08x}-{:04x}-{:04x}-{}-{}'.format( 
         self.Data1,
         self.Data2,
         self.Data3,
         ''.join(f'{b:02x}' for b in self.Data4[:2]),
         ''.join(f'{b:02x}' for b in self.Data4[2:])
-        )
-    
-    def from_string(guid_str: str):
-        data1, data2, data3, data4_1, data4_2 = guid_str.split('-')
-        data1 = int(data1, 16)
-        data2 = int(data2, 16)
-        data3 = int(data3, 16)
-        data4 = [int(data4_1[0:2], 16),int(data4_1[2:4], 16)] + [int(data4_2[i:i+2], 16) for i in range(0, len(data4_2), 2)]
-        return GUID(
-            ctypes.c_ulong(data1),
-            ctypes.c_ushort(data2),
-            ctypes.c_ushort(data3),
-            (ctypes.c_ubyte*8)(*data4)
         )
     
     def __eq__(self, other: object) -> bool:
@@ -41,11 +28,23 @@ class GUID(ctypes.Structure):
             )
         raise TypeError()
 
+    def from_string(guid_str: str):
+        data1, data2, data3, data4_1, data4_2 = guid_str.split('-')
+        data1 = int(data1, 16)
+        data2 = int(data2, 16)
+        data3 = int(data3, 16)
+        data4 = [int(data4_1[0:2], 16),int(data4_1[2:4], 16)] + [int(data4_2[i:i+2], 16) for i in range(0, len(data4_2), 2)]
+        return GUID(
+            ctypes.c_ulong(data1),
+            ctypes.c_ushort(data2),
+            ctypes.c_ushort(data3),
+            (ctypes.c_ubyte*8)(*data4)
+        )
+
 class powersetting():
     """
     電源オプションの設定を行う
     """
-    
     
     power_save : GUID       = GUID(ctypes.c_ulong(0xa1841308),
                             ctypes.c_ushort(0x3541),
@@ -60,7 +59,6 @@ class powersetting():
                             (ctypes.c_ubyte*8)(0x9a,0x85,0xa6,0xe2,0x3a,0x8c,0x63,0x5c)
                             )
     """ 電源プラン : 高パフォーマンス """
-    
     
     balance : GUID          = GUID(ctypes.c_ulong(0x381b4222),
                             ctypes.c_ushort(0xf694),
@@ -157,7 +155,5 @@ def main():
     # 高パフォーマンスで実行したいプロセス名を入れる
     high_performance_process : list = ["r5apex.exe"]
     main_loop(high_performance_process)
-
-
 
 main()
