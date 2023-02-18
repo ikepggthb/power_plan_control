@@ -1,7 +1,11 @@
 import ctypes
-
 import subprocess
 import time
+
+from PySide6 import QtCore, QtWidgets, QtGui
+
+high_performance_app_map : list = ["r5apex"]
+balanced_app_map : list = ["firefox","Chrome","Code"]
 
 class GUID(ctypes.Structure):
     _fields_ = [("Data1", ctypes.c_ulong),
@@ -18,7 +22,7 @@ class GUID(ctypes.Structure):
         ''.join(f'{b:02x}' for b in self.Data4[2:])
         )
     
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other) -> bool:
         if type(other) == GUID:
             return (
             self.Data1 == other.Data1 and
@@ -28,7 +32,7 @@ class GUID(ctypes.Structure):
             )
         raise TypeError()
 
-    def from_string(guid_str: str):
+    def from_string(self,guid_str: str):
         data1, data2, data3, data4_1, data4_2 = guid_str.split('-')
         data1 = int(data1, 16)
         data2 = int(data2, 16)
@@ -46,7 +50,7 @@ class powersetting():
     電源オプションの設定を行う
     """
     
-    power_save : GUID       = GUID(ctypes.c_ulong(0xa1841308),
+    power_saver : GUID       = GUID(ctypes.c_ulong(0xa1841308),
                             ctypes.c_ushort(0x3541),
                             ctypes.c_ushort(0x4fab),
                             (ctypes.c_ubyte*8)(0xbc,0x81,0xf7,0x15,0x56,0xf2,0x0b,0x4a)
@@ -60,7 +64,7 @@ class powersetting():
                             )
     """ 電源プラン : 高パフォーマンス """
     
-    balance : GUID          = GUID(ctypes.c_ulong(0x381b4222),
+    balanced : GUID          = GUID(ctypes.c_ulong(0x381b4222),
                             ctypes.c_ushort(0xf694),
                             ctypes.c_ushort(0x41f0),
                             (ctypes.c_ubyte*8)(0x96,0x85,0xff,0x5b,0xb2,0x60,0xdf,0x2e)
@@ -114,10 +118,12 @@ class powersetting():
         """
         if power_plan == self.high_performance:
             return "高パフォーマンス"
-        elif power_plan == self.balance:
+        elif power_plan == self.balanced:
             return "バランス"
-        elif power_plan == self.power_save:
+        elif power_plan == self.power_saver:
             return "省電力"
+        
+        return ""
         
     def get_active_power_plan_name(self):
         """
@@ -132,28 +138,144 @@ class powersetting():
         """
         return self.power_plan_str(self.get_active_power_plan())
 
-def process_exists(processes : list):
-    tasklist = subprocess.run('tasklist', shell=True, capture_output=True, text=True)
-    for process in processes:
-        if process in tasklist.stdout:
-            return True
-    return False
 
-def main_loop(high_performance_process):
-    power = powersetting()
-    is_high_performance = lambda : power.get_active_power_plan() == powersetting.high_performance
-    while True:
-        if process_exists(high_performance_process):
-            if not is_high_performance():
-                power.set_power_plan(powersetting.high_performance)
-        else:
-            if is_high_performance():
-                power.set_power_plan(powersetting.power_save)
-        time.sleep(5)
+class powerplan_set_thread(QtCore.QThread):
+    def __init__(self,power : powersetting) -> None:
+        super().__init__()
+        self.power : powersetting = power
+        self.is_should_loop_stop = False
+        self.is_loop_stop = True
+
+    def powerplan_set_loop(self) -> None :
+        self.is_should_loop_stop = False
+        self.is_loop_stop = False
+        while not self.is_should_loop_stop:
+            self.powerplan_set()
+            time.sleep(3)
+        self.is_loop_stop = True
+
+    def powerplan_set(self):
+        tasklist = subprocess.run('tasklist', shell=True, capture_output=True, text=True).stdout
+
+        # if high_performance_app in processes -> set high_performance
+        for app in high_performance_app_map:
+            if app in tasklist:
+                self.power.set_power_plan(powersetting.high_performance)
+                return True
+        
+        # else if balanced_app in processes    -> set balanced
+        for app in balanced_app_map:
+            if app in tasklist:
+                self.power.set_power_plan(powersetting.balanced)
+                return True
+        
+        # else -> set power_saver
+        self.power.set_power_plan(powersetting.power_saver)
+        return True
+    
+    def run(self):
+        self.powerplan_set_loop()
+
+    def stop(self):
+        self.is_should_loop_stop = True
+
+class systray(QtWidgets.QSystemTrayIcon):
+    def __init__(self,app : QtWidgets.QApplication ,pp_thread :  powerplan_set_thread, power : powersetting):
+        super().__init__()
+        self.app = app
+        self.icon__ = QtGui.QIcon("icon.png")
+        self.setIcon(self.icon__)
+
+        self.pp_thread = pp_thread
+        self.power = power
+
+        self.init_menu()
+
+        self.checked_action = self.a_auto
+        self.a_auto.setChecked(True)
+        self.pp_thread.start()
+        
+    def init_menu(self):
+        # メニューの作成
+        self.menu = QtWidgets.QMenu()
+
+        self.a_auto = QtGui.QAction('auto', self.menu)
+        self.a_auto.setObjectName('m_auto')
+        self.a_auto.triggered.connect(self.set_auto)  # type: ignore
+        self.a_auto.setCheckable(True)
+        self.menu.addAction(self.a_auto)
+        self.menu.setDefaultAction(self.a_auto)
+
+        # ------------------------
+        self.menu.addSeparator()
+
+        self.a_high_performance = QtGui.QAction('high_performance', self.menu)
+        self.a_high_performance.setObjectName('m_high_performance')
+        self.a_high_performance.triggered.connect(self.set_high_performance)     # type: ignore
+        self.a_high_performance.setCheckable(True)
+        self.menu.addAction(self.a_high_performance)
+
+        self.a_balanced = QtGui.QAction('balanced', self.menu)
+        self.a_balanced.setObjectName('m_balanced')
+        self.a_balanced.triggered.connect(self.set_balance)    # type: ignore
+        self.a_balanced.setCheckable(True)
+        self.menu.addAction(self.a_balanced)
+
+        self.a_power_saver = QtGui.QAction('power_save', self.menu)
+        self.a_power_saver.setObjectName('m_power_save')
+        self.a_power_saver.triggered.connect(self.set_power_save)  # type: ignore
+        self.a_power_saver.setCheckable(True)
+        self.menu.addAction(self.a_power_saver)
+
+        # ------------------------
+        self.menu.addSeparator()
+
+        # 終了アクション
+        self.a_exit = QtGui.QAction('exit', self.menu)
+        self.a_exit.setObjectName('a_exit')
+        self.a_exit.triggered.connect(self.exit_app)     # type: ignore
+        self.a_exit.setCheckable(False)
+        self.menu.addAction(self.a_exit)
+        
+        self.setContextMenu(self.menu)
+
+    def move_checked_action(self,action):
+        self.checked_action.setChecked(False)
+        self.checked_action = action
+        self.checked_action.setChecked(True)
+
+    def set_auto(self):
+        self.move_checked_action(self.a_auto)
+        self.pp_thread.start()
+
+    def set_high_performance(self):
+        self.move_checked_action(self.a_high_performance)
+        self.pp_thread.stop()
+        self.power.set_power_plan(powersetting.high_performance)
+
+    def set_balance(self):
+        self.move_checked_action(self.a_balanced)
+        self.pp_thread.stop()
+        self.power.set_power_plan(powersetting.balanced)
+
+    def set_power_save(self):
+        self.move_checked_action(self.a_power_saver)
+        self.pp_thread.stop()
+        self.power.set_power_plan(powersetting.power_saver)
+
+    def exit_app(self):
+        self.pp_thread.stop()
+        # powerplan_set_threadのループが終わるまで待つ。
+        while not self.pp_thread.is_loop_stop:
+            time.sleep(0.1)
+        return self.app.quit()
 
 def main():
-    # 高パフォーマンスで実行したいプロセス名を入れる
-    high_performance_process : list = ["r5apex.exe"]
-    main_loop(high_performance_process)
-
+    app = QtWidgets.QApplication([])
+    power = powersetting()
+    pp_thread = powerplan_set_thread(power)
+    sys_tray_icon = systray(app,pp_thread,power)
+    sys_tray_icon.show()
+    app.exec()
+    
 main()
