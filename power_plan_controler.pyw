@@ -128,7 +128,7 @@ class PowerPlanSetter():
 class DynamicPowerPlanController(QtCore.QThread):
     
     """
-        実行中のアプリケーションに応じて、適切な電源プランを設定する関数。
+        実行中のアプリケーションに応じて、適切な電源プランを設定する。
         
         引数:
 
