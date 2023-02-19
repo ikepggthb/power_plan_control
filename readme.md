@@ -5,15 +5,15 @@
 
 
 ## 使い方
-スクリプトの冒頭には、```high_performance_app_map```と```balanced_app_map```というリストがあります。
-```high_performance_app_map```には、「高パフォーマンス」で実行したいプロセス名を、```balanced_app_map```には「バランス」で実行したいプロセス名をそれぞれ入力してください。
+スクリプトの冒頭には、```HIGH_PERFORMANCE_APP_MAP```と```BALANCED_APP_MAP```というリストがあります。
+```HIGH_PERFORMANCE_APP_MAP```には、「高パフォーマンス」で実行したいプロセス名を、```BALANCED_APP_MAP```には「バランス」で実行したいプロセス名をそれぞれ入力してください。
 
 ``` python
-high_performance_app_map : list = ["r5apex"]
-balanced_app_map         : list = ["firefox","Chrome","Code"]
+HIGH_PERFORMANCE_APP_MAP : list = ["r5apex"]
+BALANCED_APP_MAP         : list = ["firefox","Chrome","Code"]
 ```
 
-```high_performance_app_map```にあるアプリケーションが起動している場合、電源プランを高パフォーマンスに設定します。そうでない場合、```balanced_app_map```にあるアプリケーションが起動している場合、電源プランをバランスに設定します。どちらでもない場合は、電源プランを省電力に設定します。
+```HIGH_PERFORMANCE_APP_MAP```にあるアプリケーションが起動している場合、電源プランを高パフォーマンスに設定します。そうでない場合、```BALANCED_APP_MAP```にあるアプリケーションが起動している場合、電源プランをバランスに設定します。どちらでもない場合は、電源プランを省電力に設定します。
 
 ログイン時に自動的に実行するよう、タスクスケジューラーなどを利用すると良いでしょう。
 
