@@ -26,13 +26,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
+    <ClCompile Include="dllmain.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="pch.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="proc_list.cpp">
+    <ClCompile Include="proc_list.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

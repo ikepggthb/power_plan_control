@@ -126,6 +126,7 @@ class PowerPlanSetter():
 class app_list_s(ctypes.Structure):
     _fields_ = [("count", ctypes.c_size_t),
                 ("names", ctypes.POINTER(ctypes.c_char_p))]
+
 class ProcessListManager():
     def __init__(self):
         self.proc_list_dll = ctypes.cdll.LoadLibrary("./proc_list.dll")
@@ -141,8 +142,6 @@ class ProcessListManager():
         self.proc_list_dll.del_app_list(ctypes.byref(self.process_list))
         return proc_list
         
-
-
 class DynamicPowerPlanController(QtCore.QThread):
     
     """
@@ -185,14 +184,13 @@ class DynamicPowerPlanController(QtCore.QThread):
 
     def run(self):
         self.request_stop = False
-        counter = 0
         while not self.request_stop:
-            if counter == 5 :
-                self.set_power_plan_based_on_running_apps()
-                counter = 0
-            else:
-                self.sleep(1)
-                counter += 1
+            self.set_power_plan_based_on_running_apps()
+            for i in range(5):
+                if self.request_stop :
+                    break
+                else:
+                    self.sleep(1)
 
     def stop(self):
         self.request_stop = True

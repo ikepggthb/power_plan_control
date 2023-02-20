@@ -12,6 +12,6 @@ typedef struct APP_LIST {
     char** names;
 } app_list_s;
 
-extern "C" PROC_LIST_API int new_app_list(app_list_s* list);
-extern "C" PROC_LIST_API int del_app_list(app_list_s* list);
-extern "C" PROC_LIST_API int get_process_list(app_list_s* process_list);
+PROC_LIST_API int new_app_list(app_list_s* list);
+PROC_LIST_API int del_app_list(app_list_s* list);
+PROC_LIST_API int get_process_list(app_list_s* process_list);
