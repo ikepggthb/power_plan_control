@@ -5,12 +5,13 @@
 
 
 ## 使い方
-スクリプトの冒頭には、```HIGH_PERFORMANCE_APP_MAP```と```BALANCED_APP_MAP```というリストがあります。
+スクリプトの冒頭には、```HIGH_PERFORMANCE_APP_MAP```と```BALANCED_APP_MAP```というタプルがあります。
 ```HIGH_PERFORMANCE_APP_MAP```には、「高パフォーマンス」で実行したいプロセス名を、```BALANCED_APP_MAP```には「バランス」で実行したいプロセス名をそれぞれ入力してください。
+要素数が1個のタプルを生成する場合は、末尾にカンマ","が必要です。
 
 ``` python
-HIGH_PERFORMANCE_APP_MAP : list = ["r5apex"]
-BALANCED_APP_MAP         : list = ["firefox","Chrome","Code"]
+HIGH_PERFORMANCE_APP_MAP : tuple = ( "r5apex.exe", )
+BALANCED_APP_MAP         : tuple = ( "firefox.exe", "Chrome.exe", "Code.exe" )
 ```
 
 ```HIGH_PERFORMANCE_APP_MAP```にあるアプリケーションが起動している場合、電源プランを高パフォーマンスに設定します。そうでない場合、```BALANCED_APP_MAP```にあるアプリケーションが起動している場合、電源プランをバランスに設定します。どちらでもない場合は、電源プランを省電力に設定します。
@@ -22,4 +23,5 @@ BALANCED_APP_MAP         : list = ["firefox","Chrome","Code"]
 - Windows Vista以上
 - Python 3.7以上
 - Pyside 6
+- ctypes
 

@@ -1,11 +1,9 @@
 import ctypes
-import subprocess
-
-
 from PySide6 import QtCore, QtWidgets, QtGui
 
-HIGH_PERFORMANCE_APP_MAP : list = ["r5apex"]
-BALANCED_APP_MAP         : list = ["firefox","Chrome","Code"]
+# 注意!! : 要素数が1個のタプルを生成する場合は、末尾にカンマ,が必要です。
+HIGH_PERFORMANCE_APP_MAP : tuple = ( "r5apex.exe", )
+BALANCED_APP_MAP         : tuple = ( "firefox.exe", "Chrome.exe", "Code.exe" )
 
 class GUID(ctypes.Structure):
     _fields_ = [("Data1", ctypes.c_ulong),
@@ -125,6 +123,26 @@ class PowerPlanSetter():
         
         return ""
 
+class app_list_s(ctypes.Structure):
+    _fields_ = [("count", ctypes.c_size_t),
+                ("names", ctypes.POINTER(ctypes.c_char_p))]
+class ProcessListManager():
+    def __init__(self):
+        self.proc_list_dll = ctypes.cdll.LoadLibrary("./proc_list.dll")
+        self.process_list = app_list_s()
+    def get(self) -> list:
+        if self.proc_list_dll.new_app_list(ctypes.byref(self.process_list)) != 0:
+            return [None]
+        if self.proc_list_dll.get_process_list(ctypes.byref(self.process_list)) != 0 :
+            return [None]
+        if self.process_list.count is ctypes.c_int or self.process_list.count <= 0 :
+            return [None]
+        proc_list = [self.process_list.names[i].decode('shift-jis') for i in range(int(self.process_list.count))]
+        self.proc_list_dll.del_app_list(ctypes.byref(self.process_list))
+        return proc_list
+        
+
+
 class DynamicPowerPlanController(QtCore.QThread):
     
     """
@@ -138,32 +156,33 @@ class DynamicPowerPlanController(QtCore.QThread):
 
     """
 
-    def __init__(self, high_perf_apps : list, balanced_apps : list) -> None:
+    def __init__(self, high_perf_apps : tuple, balanced_apps : tuple) -> None:
         super().__init__()
-        self.high_perf_apps : list = high_perf_apps
-        self.balanced_apps : list = balanced_apps
+        self.high_perf_apps : tuple = high_perf_apps
+        self.balanced_apps :  tuple = balanced_apps
         self.power_plan_setter = PowerPlanSetter()
         self.request_stop = False
+        self.process_list_manager = ProcessListManager()
+
 
     def set_power_plan_based_on_running_apps(self):
-        tasklist = subprocess.run('tasklist', shell=True, capture_output=True, text=True).stdout
-
-        # if high_performance_app in processes -> set high_performance
+        tasklist = self.process_list_manager.get()
+        # if high_performance_apps in processes -> set high_performance
         for app in self.high_perf_apps:
             if app in tasklist:
                 self.power_plan_setter.set_power_plan(PowerPlanSetter.HIGH_PERFORMANCE)
                 return True
         
-        # else if balanced_app in processes    -> set balanced
+        # else if balanced_apps in processes    -> set balanced
         for app in self.balanced_apps:
             if app in tasklist:
                 self.power_plan_setter.set_power_plan(PowerPlanSetter.BALANCED)
                 return True
-        
+
         # else -> set power_saver
         self.power_plan_setter.set_power_plan(PowerPlanSetter.POWER_SAVER)
         return True
-    
+
     def run(self):
         self.request_stop = False
         counter = 0
