@@ -6,10 +6,26 @@ HIGH_PERFORMANCE_APP_MAP : tuple = ( "r5apex.exe", )
 BALANCED_APP_MAP         : tuple = ( "firefox.exe", "Chrome.exe", "Code.exe" )
 
 class GUID(ctypes.Structure):
-    _fields_ = [("Data1", ctypes.c_ulong),
-                ("Data2", ctypes.c_ushort),
-                ("Data3", ctypes.c_ushort),
-                ("Data4", ctypes.c_ubyte * 8)]
+    """
+    guiddef.h
+    https://learn.microsoft.com/ja-jp/windows/win32/api/guiddef/ns-guiddef-guid
+    
+    ---
+    ``` C++
+    typedef struct _GUID {
+    unsigned long  Data1;
+    unsigned short Data2;
+    unsigned short Data3;
+    unsigned char  Data4[8];
+    } GUID;
+    ```
+    ---
+
+    """
+    _fields_ = [("Data1", ctypes.c_ulong),     # unsigned long  Data1;
+                ("Data2", ctypes.c_ushort),    # unsigned short Data2;
+                ("Data3", ctypes.c_ushort),    # unsigned short Data3;
+                ("Data4", ctypes.c_ubyte * 8)] # unsigned char  Data4[8];
 
     def __str__(self) -> str:
         return '{:08x}-{:04x}-{:04x}-{}-{}'.format( 
@@ -46,6 +62,14 @@ class GUID(ctypes.Structure):
 class PowerPlanSetter():
     """
     電源オプションの設定を行う
+    
+    Attributes:
+        POWER_SAVER      ( obj: GUID ) : 省電力
+
+        BALANCED         ( obj: GUID ) : バランス
+
+        HIGH_PERFORMANCE ( obj: GUID ) : 高パフォーマンス
+
     """
     
     POWER_SAVER : GUID       = GUID(ctypes.c_ulong(0xa1841308),
@@ -53,33 +77,33 @@ class PowerPlanSetter():
                             ctypes.c_ushort(0x4fab),
                             (ctypes.c_ubyte*8)(0xbc,0x81,0xf7,0x15,0x56,0xf2,0x0b,0x4a)
                             )
-    """ 電源プラン : 省電力 """
     
     HIGH_PERFORMANCE : GUID = GUID(ctypes.c_ulong(0x8c5e7fda),
                             ctypes.c_ushort(0xe8bf),
                             ctypes.c_ushort(0x4a96),
                             (ctypes.c_ubyte*8)(0x9a,0x85,0xa6,0xe2,0x3a,0x8c,0x63,0x5c)
                             )
-    """ 電源プラン : 高パフォーマンス """
     
     BALANCED : GUID          = GUID(ctypes.c_ulong(0x381b4222),
                             ctypes.c_ushort(0xf694),
                             ctypes.c_ushort(0x41f0),
                             (ctypes.c_ubyte*8)(0x96,0x85,0xff,0x5b,0xb2,0x60,0xdf,0x2e)
                             )
-    """電源プラン : バランス"""
     
     def __init__(self) -> None:
         self.power_prof_dll = ctypes.WinDLL("PowrProf")
+        """ PowrProf.dll
+        https://learn.microsoft.com/ja-jp/windows/win32/api/powrprof/
+        """
 
     def get_active_power_plan(self) -> GUID:
         """
         現在アクティブな電源プランのGUIDを取得する。
 
-        引数:
+        Args:
             なし
 
-        返り値: 
+        Return: 
             GUID :
                 現在アクティブな電源プランのGUIDを返す。
         """
@@ -91,30 +115,27 @@ class PowerPlanSetter():
         """
         電源プランを設定する。
 
-            例: 高パフォーマンスに設定したい場合
-                set_power_plan(powersetting.high_performance)
+        Ex: 高パフォーマンスに設定したい場合
+            set_power_plan(powersetting.high_performance)
 
-        引数:
-            power_plan (GUID) :
-                設定する電源プランのGUID
+        Args:
+            power_plan (GUID) : 設定する電源プランのGUID
 
-        返り値: 
-            なし
+        Return: なし
         """
         self.power_prof_dll.PowerSetActiveScheme(None,ctypes.byref(power_plan))
 
     def power_plan_str(self,power_plan : GUID) -> str:
         """
-        ### 説明
-            電源プランのGUIDから、電源プランの名前を取得する。
+        電源プランのGUIDから、電源プランの名前を取得する。
 
-        ### 引数
+        Args:
             GUID : 電源プランのGUID
 
-        ### 返り値
+        Return: 
             str : 電源プランの名前
         """
-        if power_plan == self.HIGH_PERFORMANCE:
+        if   power_plan == self.HIGH_PERFORMANCE:
             return "高パフォーマンス"
         elif power_plan == self.BALANCED:
             return "バランス"
@@ -122,8 +143,21 @@ class PowerPlanSetter():
             return "省電力"
         
         return ""
+    
 
 class app_list_s(ctypes.Structure):
+    """
+    "proc_list.h"
+    
+    ---
+    ``` c
+    typedef struct APP_LIST {
+        size_t count;
+        char** names;
+    } app_list_s;
+    ```
+    ---
+    """
     _fields_ = [("count", ctypes.c_size_t),
                 ("names", ctypes.POINTER(ctypes.c_char_p))]
 
@@ -144,14 +178,13 @@ class ProcessListManager():
         
 class DynamicPowerPlanController(QtCore.QThread):
     
-    """
-        実行中のアプリケーションに応じて、適切な電源プランを設定する。
-        
-        引数:
+    """ DynamicPowerPlanController
 
-            high_perf_apps - 高パフォーマンスアプリケーションのリスト  
-
-            balanced_apps - バランスアプリケーションのリスト
+    実行中のアプリケーションに応じて、適切な電源プランを設定する。
+    
+    Args:
+        high_perf_apps : 高パフォーマンスアプリケーションのリスト  
+        balanced_apps  : バランスアプリケーションのリスト
 
     """
 
@@ -163,9 +196,8 @@ class DynamicPowerPlanController(QtCore.QThread):
         self.request_stop = False
         self.process_list_manager = ProcessListManager()
 
-
     def set_power_plan_based_on_running_apps(self):
-        tasklist = self.process_list_manager.get()
+        tasklist : list = self.process_list_manager.get()
         # if high_performance_apps in processes -> set high_performance
         for app in self.high_perf_apps:
             if app in tasklist:
@@ -208,10 +240,6 @@ class SysTray(QtWidgets.QSystemTrayIcon):
         self.power_plan_setter = PowerPlanSetter()
 
         self.init_menu()
-
-        self.checked_action : QtGui.QAction = self.auto_setter_action
-        self.auto_setter_action.setChecked(True)
-        self.power_plan_controller_thread.start()
         
     def init_menu(self):
         # メニューの作成
@@ -253,30 +281,32 @@ class SysTray(QtWidgets.QSystemTrayIcon):
         self.menu.addAction(self.exit_app_action)
         
         self.setContextMenu(self.menu)
+        self.checked_action = None
 
     def switch_checked_action(self,new_action):
-        self.checked_action.setChecked(False)
+        if self.checked_action is not None:
+            self.checked_action.setChecked(False)
         self.checked_action = new_action
         self.checked_action.setChecked(True)
 
     def set_auto(self):
-        self.switch_checked_action(self.auto_setter_action)
         self.power_plan_controller_thread.start()
+        self.switch_checked_action(self.auto_setter_action)
 
     def set_high_performance(self):
-        self.switch_checked_action(self.high_performance_action)
         self.power_plan_controller_thread.stop()
         self.power_plan_setter.set_power_plan(PowerPlanSetter.HIGH_PERFORMANCE)
+        self.switch_checked_action(self.high_performance_action)
 
     def set_balance(self):
-        self.switch_checked_action(self.balanced_action)
         self.power_plan_controller_thread.stop()
         self.power_plan_setter.set_power_plan(PowerPlanSetter.BALANCED)
+        self.switch_checked_action(self.balanced_action)
 
     def set_power_save(self):
-        self.switch_checked_action(self.power_saver_action)
         self.power_plan_controller_thread.stop()
         self.power_plan_setter.set_power_plan(PowerPlanSetter.POWER_SAVER)
+        self.switch_checked_action(self.power_saver_action)
 
     def exit_app(self):
         self.power_plan_controller_thread.stop()
@@ -288,8 +318,11 @@ def main():
     sys_tray_icon = SysTray(
         app,
         power_plan_controller_thread
-        )
+    )
+    sys_tray_icon.set_auto()
     sys_tray_icon.show()
     app.exec()
-    
-main()
+
+
+if __name__ == "__main__":
+    main()
