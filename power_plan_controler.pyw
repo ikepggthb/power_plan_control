@@ -136,7 +136,7 @@ class ProcessListManager():
             return [None]
         if self.proc_list_dll.get_process_list(ctypes.byref(self.process_list)) != 0 :
             return [None]
-        if self.process_list.count is ctypes.c_int or self.process_list.count <= 0 :
+        if self.process_list.count is ctypes.c_size_t or self.process_list.count <= 0 :
             return [None]
         proc_list = [self.process_list.names[i].decode('shift-jis') for i in range(int(self.process_list.count))]
         self.proc_list_dll.del_app_list(ctypes.byref(self.process_list))
