@@ -165,16 +165,16 @@ class ProcessListManager():
     def __init__(self):
         self.proc_list_dll = ctypes.cdll.LoadLibrary("./proc_list.dll")
         self.process_list = app_list_s()
-    def get(self) -> list:
         if self.proc_list_dll.new_app_list(ctypes.byref(self.process_list)) != 0:
-            return [None]
-        if self.proc_list_dll.get_process_list(ctypes.byref(self.process_list)) != 0 :
-            return [None]
-        if self.process_list.count is ctypes.c_size_t or self.process_list.count <= 0 :
-            return [None]
-        proc_list = [self.process_list.names[i].decode('shift-jis') for i in range(int(self.process_list.count))]
-        self.proc_list_dll.del_app_list(ctypes.byref(self.process_list))
+            raise Exception("メモリの確保に失敗")
+    def get(self) -> list:
+        is_get_list_ok = self.proc_list_dll.get_process_list(ctypes.byref(self.process_list))
+        if is_get_list_ok != 0 or not isinstance(self.process_list.count, int) or self.process_list.count <= 0:
+            raise Exception("プロセス一覧の取得に失敗")
+        proc_list = [self.process_list.names[i].decode('shift-jis') for i in range(self.process_list.count)]
         return proc_list
+    def __del__(self):
+        self.proc_list_dll.del_app_list(ctypes.byref(self.process_list))
         
 class DynamicPowerPlanController(QtCore.QThread):
     
@@ -222,7 +222,7 @@ class DynamicPowerPlanController(QtCore.QThread):
                 if self.request_stop :
                     break
                 else:
-                    self.sleep(1)
+                    self.msleep(500)
 
     def stop(self):
         self.request_stop = True
