@@ -9,8 +9,8 @@
 ```HIGH_PERFORMANCE_APP_MAP```には、「高パフォーマンス」で実行したいプロセス名を、```BALANCED_APP_MAP```には「バランス」で実行したいプロセス名をそれぞれ入力してください。
 
 ``` python
-HIGH_PERFORMANCE_APP_MAP : tuple = ( "r5apex.exe", )
-BALANCED_APP_MAP         : tuple = ( "firefox.exe", "Chrome.exe", "Code.exe" )
+HIGH_PERFORMANCE_APP_MAP : set = {"firefox.exe"} 
+BALANCED_APP_MAP         : set = {"Chrome.exe", "Code.exe"} 
 ```
 
 ```HIGH_PERFORMANCE_APP_MAP```にあるアプリケーションが起動している場合、電源プランを高パフォーマンスに設定します。
