@@ -1,7 +1,6 @@
 import ctypes
 from PySide6 import QtCore, QtWidgets, QtGui
 
-# 注意!! : 要素数が1個のタプルを生成する場合は、末尾にカンマ,が必要です。
 HIGH_PERFORMANCE_APP_MAP : set = {"firefox.exe"} 
 BALANCED_APP_MAP         : set = {"Chrome.exe", "Code.exe"} 
 
