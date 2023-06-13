@@ -10,7 +10,7 @@
 
 ``` python
 HIGH_PERFORMANCE_APP_MAP : set = {"firefox.exe"} 
-BALANCED_APP_MAP         : set = {"Chrome.exe", "Code.exe"} 
+BALANCED_APP_MAP         : set = {"chrome.exe", "Code.exe"} 
 ```
 
 ```HIGH_PERFORMANCE_APP_MAP```にあるアプリケーションが起動している場合、電源プランを高パフォーマンスに設定します。
