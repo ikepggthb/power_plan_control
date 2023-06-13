@@ -2,8 +2,8 @@ import ctypes
 from PySide6 import QtCore, QtWidgets, QtGui
 
 # 注意!! : 要素数が1個のタプルを生成する場合は、末尾にカンマ,が必要です。
-HIGH_PERFORMANCE_APP_MAP : tuple = ( "r5apex.exe", )
-BALANCED_APP_MAP         : tuple = ( "firefox.exe", "Chrome.exe", "Code.exe" )
+HIGH_PERFORMANCE_APP_MAP : set = {"firefox.exe"} 
+BALANCED_APP_MAP         : set = {"Chrome.exe", "Code.exe"} 
 
 class GUID(ctypes.Structure):
     """
@@ -188,31 +188,27 @@ class DynamicPowerPlanController(QtCore.QThread):
 
     """
 
-    def __init__(self, high_perf_apps : tuple, balanced_apps : tuple) -> None:
+    def __init__(self, high_perf_apps : set, balanced_apps : set) -> None:
         super().__init__()
-        self.high_perf_apps : tuple = high_perf_apps
-        self.balanced_apps :  tuple = balanced_apps
+        self.high_perf_apps : set = high_perf_apps
+        self.balanced_apps :  set = balanced_apps
         self.power_plan_setter = PowerPlanSetter()
         self.request_stop = False
         self.process_list_manager = ProcessListManager()
 
     def set_power_plan_based_on_running_apps(self):
         tasklist : list = self.process_list_manager.get()
-        # if high_performance_apps in processes -> set high_performance
-        for app in self.high_perf_apps:
-            if app in tasklist:
-                self.power_plan_setter.set_power_plan(PowerPlanSetter.HIGH_PERFORMANCE)
-                return True
+        tasklist : set = set(tasklist)
+        if tasklist & self.high_perf_apps:
+            self.power_plan_setter.set_power_plan(PowerPlanSetter.HIGH_PERFORMANCE)
+            return True
+        elif tasklist & self.balanced_apps:
+            self.power_plan_setter.set_power_plan(PowerPlanSetter.BALANCED)
+            return True
+        else :
+            self.power_plan_setter.set_power_plan(PowerPlanSetter.POWER_SAVER)
+            return True
         
-        # else if balanced_apps in processes    -> set balanced
-        for app in self.balanced_apps:
-            if app in tasklist:
-                self.power_plan_setter.set_power_plan(PowerPlanSetter.BALANCED)
-                return True
-
-        # else -> set power_saver
-        self.power_plan_setter.set_power_plan(PowerPlanSetter.POWER_SAVER)
-        return True
 
     def run(self):
         self.request_stop = False
