@@ -194,10 +194,13 @@ class DynamicPowerPlanController(QtCore.QThread):
         self.power_plan_setter = PowerPlanSetter()
         self.request_stop = False
         self.process_list_manager = ProcessListManager()
+        self.prev_tasklist: set = set()
 
     def set_power_plan_based_on_running_apps(self):
-        tasklist : list = self.process_list_manager.get()
-        tasklist : set = set(tasklist)
+        tasklist : set = set(self.process_list_manager.get())
+        if self.prev_tasklist == tasklist:
+            return True
+        self.prev_tasklist = tasklist
         if tasklist & self.high_perf_apps:
             self.power_plan_setter.set_power_plan(PowerPlanSetter.HIGH_PERFORMANCE)
             return True
@@ -207,7 +210,6 @@ class DynamicPowerPlanController(QtCore.QThread):
         else :
             self.power_plan_setter.set_power_plan(PowerPlanSetter.POWER_SAVER)
             return True
-        
 
     def run(self):
         self.request_stop = False
