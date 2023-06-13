@@ -2,7 +2,7 @@ import ctypes
 from PySide6 import QtCore, QtWidgets, QtGui
 
 HIGH_PERFORMANCE_APP_MAP : set = {"firefox.exe"} 
-BALANCED_APP_MAP         : set = {"Chrome.exe", "Code.exe"} 
+BALANCED_APP_MAP         : set = {"chrome.exe", "Code.exe"} 
 
 class GUID(ctypes.Structure):
     """
